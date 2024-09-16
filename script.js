@@ -21,7 +21,8 @@ async function calculateTimeBytes() {
 async function updateTime() {
   try {
     const device = await navigator.bluetooth.requestDevice({
-        filters: [{name: 'LYWSD02'}]
+        filters: [{name: 'LYWSD02'}],
+        optionalServices: [SERVICE_UUID]
     });
 
     document.getElementById('status-message').innerText = 'Updating time...';
