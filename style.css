@@ -51,16 +51,16 @@
     cursor: pointer;
     font-weight: 500;
   }
+  
+  button:hover {
+    background-color: #218838;
+  }
 
   button:disabled,
   button[disabled] {
     background-color: #ccc;
     color: #fff;
     cursor: not-allowed;
-  }
-  
-  button:hover {
-    background-color: #218838;
   }
   
   p {
