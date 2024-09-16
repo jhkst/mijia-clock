@@ -42,4 +42,13 @@ async function updateTime() {
   }
 }
 
+function checkCompatibility() {
+  if (!navigator.bluetooth) {
+    document.getElementById('status-message').innerText = 'Web Bluetooth is not supported in your browser!';
+    document.getElementById('update-time-button').disabled = true;
+  }
+}
+
 document.getElementById('update-time-button').addEventListener('click', updateTime);
+
+checkCompatibility();
