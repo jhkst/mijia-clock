@@ -9,14 +9,19 @@
 </head>
 <body>
   <div class="container">
-    <h1>Xiaomi - time sync</h1>
-    <img src="mijia.jpg" alt="Xiaomi Temperature and Humidity Monitor Sensor" class="mijia-image">
+    <h1 id="device-name">-</h1>
+    <img id="device-image" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" class="mijia-image">
 
-    <button id="update-time-button">Update Time</button>
+    <button id="connect-button">Connect</button>
+    <button id="disconnect-button">Disconnect</button>
+    <div id="capabilities-control">
+      
+    </div>
 
     <p id="status-message"></p>
+    <p id="log"></p>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js" type="module"></script>
 </body>
 </html>

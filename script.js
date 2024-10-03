@@ -1,54 +1,138 @@
-// Global constants for Bluetooth configuration
-const SERVICE_UUID = 'EBE0CCB0-7A0A-4B0C-8A1A-6FF2997DA3A6'.toLowerCase();
-const CHARACTERISTIC_UUID = 'EBE0CCB7-7A0A-4B0C-8A1A-6FF2997DA3A6'.toLowerCase();
+import { LYWSD02MMC } from './devices/lywsd02mmc.js';
+import { LYWSDCGQ_01ZM } from './devices/lywsdcgq.js';
+import { BTLEDevice } from './btle_device.js';
+import { cap } from './capabilities-control.js';
 
 
-// Function to calculate current time in bytes (as in your original script)
-async function calculateTimeBytes() {
-  const ts = Math.floor(Date.now() / 1000);  // Current Unix timestamp
-  const hexts = ts.toString(16).padStart(8, '0').toUpperCase();  // Convert to hex
-  
-  const tzOffset = new Date().getTimezoneOffset() / -60;  // Get timezone offset in hours
-  const tz256 = (tzOffset & 0xFF).toString(16).padStart(2, '0').toUpperCase();
-  
-  const hextime = hexts.slice(6, 8) + hexts.slice(4, 6) + hexts.slice(2, 4) + hexts.slice(0, 2) + tz256;
-  
-  const timeBytes = new Uint8Array(hextime.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-  return timeBytes;
+let mi;
+const logMaxMessages = 10;
+const logMessages = Array(logMaxMessages).fill("");
+const devices = [new LYWSD02MMC(), new LYWSDCGQ_01ZM()];
+
+async function connect() {
+  log('Connecting to device...'); 
+  if (mi && mi.isConnected()) {
+    log('Already connected', true);
+  } else {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: devices.map(d => d._requestFilter()),
+      optionalServices: devices.map(d => d._requestServices()).flat()
+    });
+
+    // add diconnect event listener
+    device.addEventListener('gattserverdisconnected', () => {
+      log('Disconnected from device');
+      if (mi) {
+        mi.disconnect();
+      }
+      mi = null;
+      document.getElementById('device-image').src = '';
+      document.getElementById('device-name').innerText = '';
+      document.getElementById('capabilities-control').replaceChildren();
+    });
+
+    mi = devices.find(d => d.isSuitableDevice(device));
+    mi.setDevice(device);
+    document.getElementById('device-image').src = `devices/${mi.image()}`;
+    document.getElementById('device-name').innerText = mi.getName();
+    document.getElementById('capabilities-control').replaceChildren();
+    document.getElementById('capabilities-control').appendChild(cap(mi, mi.capabilities()));
+  }
+
+  await mi.connect();
+
+  log('OK', true);
+  log('Device name: ' + mi.getDeviceName());
+  log('Device ID: ' + mi.getDeviceId());
 }
 
 // Function to update time on the selected Bluetooth device
 async function updateTime() {
   try {
-    const device = await navigator.bluetooth.requestDevice({
-        filters: [{name: 'LYWSD02'}],
-        optionalServices: [SERVICE_UUID]
-    });
-
-    document.getElementById('status-message').innerText = 'Updating time...';
-
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-    
-    const timeBytes = await calculateTimeBytes();
-    await characteristic.writeValue(timeBytes);
-    document.getElementById('status-message').innerText = 'Time updated successfully!';
-    
-    await device.gatt.disconnect();
+    await connect();
+    log('Updating time...');
+    await mi.setTime();
+    log('OK', true);
   } catch (error) {
-    document.getElementById('status-message').innerText = 'Failed to update time: ' + error;
+    log('ERROR', true);
+    log('Failed to update time: ' + error);
   }
+}
+
+async function readData() {
+  try {
+    await connect();
+    log('Reading data...');
+    const th = await mi?.getTempAndHum() || { temp: NaN, hum: NaN };
+    const unit = await mi?.getTempUnit() || null;
+    const data = {
+      'Temperature C': { value: th.temp, unit: '°C' },
+      'Temperature F': { value: th.temp * 9 / 5 + 32, unit: '°F' },
+      'Humidity': { value: th.hum, unit: '%' },
+      'Unit': { value: unit, unit: '' },
+      'Battery': { value: await mi?.getBattery(), unit: '%' },
+      'Time': { value: await mi?.getTime(), unit: '' },
+    }
+    // const hist = await mi.getHistoryData();
+    // console.log(hist);
+    log('OK', true);
+
+    if (unit) { updateUnit(unit); }
+    
+    document.getElementById('status-message').innerText = Object.entries(data).map(([key, value]) => `${key}: ${value.value} ${value.unit}`).join('\n');
+  } catch (error) {
+    console.error(error);
+    log('ERROR', true);
+    log('Failed to read data: ' + error);
+  }
+}
+
+
+
+function updateUnit(unit) {
+  document.getElementById('unit-c').checked = unit === 'C';
+  document.getElementById('unit-f').checked = unit === 'F';
 }
 
 function checkCompatibility() {
-  if (!navigator.bluetooth) {
-    document.getElementById('status-message').innerText = 'Web Bluetooth is not supported in your browser!';
-    document.getElementById('update-time-button').disabled = true;
+  log('Checking Web Bluetooth compatibility...');
+  if (!BTLEDevice.isAvailable()) {
+    log('Not Supported', true);
+  } else {
+    log('OK', true);
   }
 }
 
-document.getElementById('update-time-button').addEventListener('click', updateTime);
+function log(message, sameLine = false) {
+  const log = document.getElementById('log');
+  if (sameLine) {
+    logMessages[logMessages.length - 1] += message;
+  } else {
+    logMessages.push(message);
+  }
+  if (logMessages.length > logMaxMessages) {
+    logMessages.shift();
+  }
+  log.innerText = logMessages.join('\n');
+}
+
+document.getElementById('connect-button').addEventListener('click', async () => {
+  await connect();
+});
+document.getElementById('disconnect-button').addEventListener('click', async () => { 
+  await mi.disconnect(); 
+});
+// document.getElementById('update-time-button').addEventListener('click', updateTime);
+// document.getElementById('read-data').addEventListener('click', readData);
+// on unit radiobuton change
+// document.getElementsByName('unit').forEach(radio => {
+//   radio.addEventListener('change', async () => {
+//     await connect();
+//     log('Changing unit...');
+//     await mi.setTempUnit(radio.value);
+//     log('OK', true);
+//   });
+// });
 
 checkCompatibility();
+

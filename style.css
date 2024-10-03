@@ -51,16 +51,15 @@
     cursor: pointer;
     font-weight: 500;
   }
-  
-  button:hover {
-    background-color: #218838;
-  }
 
-  button:disabled,
-  button[disabled] {
+  button:disabled {
     background-color: #ccc;
     color: #fff;
     cursor: not-allowed;
+  }
+  
+  button:hover {
+    background-color: #218838;
   }
   
   p {
@@ -68,6 +67,61 @@
     color: #555;
   }
 
+  p#status-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: left;
+  }
+
+  /* With small font sans-serif */
+  p#log {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: left;
+    background-color: #f7f7f7;
+    font-size: 9px;
+    font-family: sans-serif;
+  }
+
+  .unit-select-container {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .unit-select-container input {
+    width: 50%;
+    padding: 10px;
+    font-size: 16px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+
+  .unit-select-container label {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+
   .mijia-image {
-    width: 100%;
+    max-width: 100%;
+    margin-top: 20px;
+    max-height: 180px;
+  }
+
+
+  /* <div class="capability read"> */
+  div.capability.read button {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+  }
+
+  /* <div class="capability write"> */
+  div.capability.write button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
   }
